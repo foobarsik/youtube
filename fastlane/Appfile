@@ -1,0 +1,9 @@
+# iOS Settings
+app_identifier("startup.house.youtube")
+team_name("STARTUP DEVELOPMENT HOUSE SP Z O O")
+team_id("DUQDH977UX")
+itc_team_id("119026608")
+itc_team_name("STARTUP DEVELOPMENT HOUSE SP Z O O")
+
+# Android Settings
+package_name("startup.house.youtube")

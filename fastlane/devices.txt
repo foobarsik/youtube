@@ -1,0 +1,3 @@
+Device ID	Device Name
+00008020-00046d340198002e	Paweł Pęcikiewicz - iPhone XS	ios
+4969de9fee85b274f832499bb8e62fdd04a08c2e	Paweł Pęcikiewicz - iPhone SE (1st generation)	ios

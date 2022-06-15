@@ -1,0 +1,334 @@
+# this should be the folder name under `ios` for your project
+project_name = 'youtube'
+display_name = 'Youtube'
+
+next_version = nil
+build_number = nil
+# alpha, beta, production
+type = ENV['RN_RELEASE_TYPE'] || 'production'
+tag_prefix = nil
+
+before_all do |lane, options|
+  next if lane == :certificates || lane == :generate_new_certificates
+  next if(ENV['IS_CI'])
+  ensure_git_status_clean
+  begin
+    version = appcenter_fetch_version_number
+    puts(version)
+    build_number = version['id']+1
+  rescue => ex
+    UI.error(ex)
+    UI.message 'First release. Setting build number to 1'
+    build_number = 1
+  end
+  puts(build_number)
+end
+
+# NOTE: This is meant to be run on CI where it changes everything before building the app.
+# Usage:
+#   `RN_RELEASE_TYPE=beta fastlane prep_release_type` (on CI these ENV variables should be set via the UI)
+desc "Updates the app identifier, display name and icon for alpha, beta, and production releases"
+private_lane :prep_release_type do
+
+  if(type != 'production')
+    suffix = ENV['RN_BUNDLE_SUFFIX'] || type
+    # assumes identifier is defined in Appfile
+    app_id = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
+    new_app_id = "#{app_id}.#{suffix}"
+    typed_display_name = ENV['RN_DISPLAY_NAME'] || "#{display_name} #{type.capitalize}"
+    provisioning_profile_type = 'adhoc'
+
+    UI.important "Setting app identifier to: #{new_app_id}"
+    UI.important "Setting Display Name to: #{typed_display_name}"
+
+	if(ENV["FASTLANE_PLATFORM_NAME"] == "ios")
+      update_info_plist(
+        plist_path: "#{project_name}/Info.plist",
+        xcodeproj: "./ios/#{project_name}.xcodeproj",
+        display_name: typed_display_name,
+      )
+      update_app_identifier(
+        plist_path: "#{project_name}/Info.plist",
+        xcodeproj: "./ios/#{project_name}.xcodeproj",
+        app_identifier: new_app_id
+      )
+
+      UI.important "Updating app icon with #{type} badge"
+      add_badge(
+        glob: "/ios/**/*.appiconset/*.{png,PNG}", # note no dot in path
+        alpha: type == 'alpha',
+        grayscale: type == 'alpha'
+      )
+	end
+
+    if(ENV["FASTLANE_PLATFORM_NAME"] == "android")
+      update_android_strings(
+        block: lambda { |strings|
+          strings['app_name'] = typed_display_name
+        }
+      )
+      set_value_in_build(
+        app_project_dir: './android/app',
+        key: 'applicationIdSuffix',
+        value: ".#{suffix}"
+      )
+
+      UI.important "Updating app icon with #{type} badge"
+      add_badge(
+        glob: "/android/app/src/main/res/**/ic_launcher.{png,PNG}", # note no dot in path
+        alpha: type == 'alpha',
+        grayscale: type == 'alpha'
+      )
+    end
+  else
+    new_app_id = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
+    provisioning_profile_type = 'appstore'
+  end
+
+  # update iOS signing
+  if(ENV["FASTLANE_PLATFORM_NAME"] == "ios")
+    sync_code_signing(
+      type: provisioning_profile_type,
+      app_identifier: new_app_id,
+      force_for_new_devices: true,
+      readonly: true
+    )
+
+	UI.message "Updating project file with match provisioning profile"
+	folder = "../ios/#{project_name}.xcodeproj"
+ 	project = Xcodeproj::Project.open(folder)
+    project.targets.each do |target|
+      target.build_configuration_list.build_configurations.each do |build_configuration|
+        if(build_configuration.name === "Release")
+        	build_configuration.build_settings["PROVISIONING_PROFILE"] =  ENV["sigh_#{new_app_id}_#{provisioning_profile_type}"]
+        	build_configuration.build_settings["PROVISIONING_PROFILE_SPECIFIER"] = ENV["sigh_#{new_app_id}_#{provisioning_profile_type}_profile-name"]
+		end
+      end
+    end
+
+    project.save
+  end
+end
+
+desc 'Verify next release'
+private_lane :verify do
+ is_releaseable = analyze_commits(match: tag_prefix)
+ unless is_releaseable
+   UI.header "Skip deploying #{type}. No changes since last one!"
+ end
+ is_releaseable
+end
+
+
+#############################
+# Android
+#############################
+platform :android do
+  desc 'Build the Android application.'
+  lane :build do |options|
+    task = options[:apk] ? 'assemble' : 'bundle'
+    tag_prefix = "android/#{type}*"
+    next unless verify
+
+    prep_release_type
+
+    next_version = lane_context[SharedValues::RELEASE_NEXT_VERSION]
+    if(ENV['ENVFILE'])
+      sh("cat ../#{ENV['ENVFILE']} > ../.env")
+    end
+    gradle(task: 'clean', project_dir: 'android/')
+    gradle(
+      task: task,
+      build_type: 'release',
+      project_dir: 'android/',
+      properties: {
+        'vcode' => build_number,
+        'vname' => next_version
+      })
+    output_path = options[:apk] ? lane_context[SharedValues::GRADLE_APK_OUTPUT_PATH] : lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH]
+    sh("mkdir -p ../build/; cp #{output_path} ../build/")
+  end
+
+  desc 'Build and upload to App Center.'
+  lane :appcenter do
+    ensure_env_vars(
+      env_vars: ['APPCENTER_APP_NAME', 'APPCENTER_API_TOKEN', 'APPCENTER_OWNER_NAME']
+    )
+  	next unless build
+  	changelog = conventional_changelog(
+      format: 'plain',
+      display_links: false,
+      display_title: false,
+      sections: {
+      	fix: 'Bug Fixes',
+      	feat: 'Features'
+      },
+      order: ['feat', 'fix'],
+    )
+    puts(changelog)
+	appcenter_upload(
+	  file: lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH],
+	  release_notes: changelog
+    )
+    add_git_tag(tag: "android/#{type}/#{next_version}/#{build_number}")
+    push_git_tags
+  end
+
+  desc 'Upload build to Google Play.'
+  lane :store do
+    ensure_env_vars(env_vars: ['SUPPLY_JSON_KEY'])
+    next unless build
+    upload_to_play_store(
+      track: 'alpha',
+      aab: lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH],
+      release_status: 'draft' # remove this after first live release
+    )
+  end
+end
+
+#############################
+# iOS
+#############################
+platform :ios do
+
+  before_all do
+#       setup_ci
+  end
+
+  desc 'Fetch and setup devices'
+  lane :devices do
+  	appcenter_fetch_devices(
+      devices_file: "./fastlane/devices.txt"
+    )
+
+    register_devices(
+      devices_file: "./fastlane/devices.txt",
+    )
+
+    certificates
+  end
+
+  desc "Get certificates"
+  lane :certificates do
+    app_id = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
+    sync_code_signing(
+      type: "development",
+      app_identifier: ["#{app_id}.alpha", "#{app_id}.beta", "#{app_id}"],
+      force_for_new_devices: true,
+      readonly: true
+    )
+
+    sync_code_signing(
+      type: "adhoc",
+      app_identifier: ["#{app_id}.alpha", "#{app_id}.beta", "#{app_id}"],
+      force_for_new_devices: true,
+      readonly: true
+    )
+
+    sync_code_signing(
+      type: "appstore",
+      app_identifier: "#{app_id}",
+      readonly: true
+    )
+  end
+
+  desc "Generate new certificates"
+  lane :generate_new_certificates do
+    app_id = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
+    sync_code_signing(
+      type: "development",
+      app_identifier: ["#{app_id}.alpha", "#{app_id}.beta", "#{app_id}"],
+      force_for_new_devices: true,
+      readonly: false
+    )
+
+    sync_code_signing(
+      type: "adhoc",
+      app_identifier: ["#{app_id}.alpha", "#{app_id}.beta", "#{app_id}"],
+      force_for_new_devices: true,
+      readonly: false
+    )
+
+    sync_code_signing(
+      type: "appstore",
+      app_identifier: "#{app_id}",
+      readonly: false
+    )
+  end
+
+  desc 'Fetch devices, certificates and build the iOS application.'
+  lane :build do
+    tag_prefix = "ios/#{type}*"
+    next unless verify
+
+    prep_release_type
+
+    export_method = (type == 'production') ? 'app-store' : 'ad-hoc'
+    next_version = lane_context[SharedValues::RELEASE_NEXT_VERSION]
+    increment_version_number(
+      version_number: next_version,
+      xcodeproj: "./ios/#{project_name}.xcodeproj"
+    )
+    increment_build_number(
+      build_number: build_number,
+      xcodeproj: "./ios/#{project_name}.xcodeproj"
+    )
+    gym(
+      workspace: "./ios/#{project_name}.xcworkspace",
+      export_method: export_method,
+	  skip_profile_detection: true,
+	  output_directory: "./build/",
+    )
+  end
+
+  desc 'Build and upload to App Center.'
+  lane :appcenter do
+    ensure_env_vars(
+      env_vars: ['APPCENTER_APP_NAME', 'APPCENTER_API_TOKEN', 'APPCENTER_OWNER_NAME']
+    )
+  	next unless build
+    changelog = conventional_changelog(
+      format: 'plain',
+      display_links: false,
+      display_title: false,
+      sections: {
+      	fix: 'Bug Fixes',
+      	feat: 'Features'
+      },
+      order: ['feat', 'fix'],
+    )
+    puts(changelog)
+    appcenter_upload(
+      file: lane_context[SharedValues::IPA_OUTPUT_PATH],
+      release_notes: changelog
+    )
+    add_git_tag(tag: "ios/#{type}/#{next_version}/#{build_number}")
+    push_git_tags
+  end
+
+  desc 'Build and upload to App Store Connect.'
+  lane :store do
+    app_store_connect_api_key(
+      is_key_content_base64: true,
+      in_house: false, # if it is enterprise or not
+    )
+    build
+    upload_to_testflight(skip_waiting_for_build_processing: true,)
+  end
+
+end
+
+after_all do |lane, options|
+  next if lane == :certificates || lane == :generate_new_certificates
+  next if(ENV['IS_CI'])
+  clean_build_artifacts(exclude_pattern: '.*.ipa')
+  reset_git_repo(skip_clean: true)
+end
+
+error do
+  next if(ENV['IS_CI'])
+  clean_build_artifacts(exclude_pattern: '.*.ipa')
+  if(lane_context[SharedValues::GIT_REPO_WAS_CLEAN_ON_START])
+    reset_git_repo(skip_clean: true)
+  end
+end

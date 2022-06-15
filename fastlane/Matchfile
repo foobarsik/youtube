@@ -1,0 +1,2 @@
+git_url(ENV['IS_CI'] ?  "https://github.com/startupdevhouse/mobile-boilerplate-certificates.git" : "git@github.com:startupdevhouse/mobile-boilerplate-certificates.git")
+storage_mode("git")
