@@ -4,7 +4,9 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {H3} from '../../../theme/Typography';
 import {useStores} from '../../common/stores/RootStore';
 import {Observer} from 'mobx-react-lite';
-import {Pressable} from 'react-native';
+import {Pressable, FlatList} from 'react-native';
+import {VideoPreview} from '../../videos/components/VideoPreview';
+import * as mobx from 'mobx';
 
 export const StartScreen = () => {
 	const rootStore = useStores();
@@ -13,11 +15,22 @@ export const StartScreen = () => {
 		<Observer>
 			{() => (
 				<Box>
-					{rootStore.videoCategoriesStore.categories.map(category => (
-						<Category key={category.id}>
-							<H3>{category.title}</H3>
-						</Category>
-					))}
+					<Categories>
+						{rootStore.videoCategoriesStore.categories.map(category => (
+							<Category key={category.id}>
+								<H3>{category.title}</H3>
+							</Category>
+						))}
+					</Categories>
+
+					<FlatList
+						data={mobx.toJS(rootStore.videosStore.videos)}
+						renderItem={VideoPreview}
+						keyExtractor={video => video.id}
+						onEndReached={() => {
+							rootStore.videosStore.getVideos();
+						}}
+					/>
 				</Box>
 			)}
 		</Observer>
@@ -25,9 +38,11 @@ export const StartScreen = () => {
 };
 
 const Box = styled(SafeAreaView)(({theme}) => ({
-	alignItems: 'center',
+	backgroundColor: theme.color.background,
+}));
+
+const Categories = styled(SafeAreaView)(({theme}) => ({
 	justifyContent: 'center',
-	flex: 1,
 	flexDirection: 'row',
 	flexWrap: 'wrap',
 	backgroundColor: theme.color.background,
