@@ -10,6 +10,8 @@ import {StartScreen} from './modules/start/components/StartScreen';
 import {ErrorTrackingService} from './services/errorTracking/ErrorTrackingService';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
+MaterialCommunityIcons.loadFont();
+
 const Tab = createBottomTabNavigator();
 
 type Props = {
