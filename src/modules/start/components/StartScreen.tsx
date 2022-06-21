@@ -10,6 +10,12 @@ import {VideoCategory} from '../../videoCategories/components/VideoCategory';
 
 export const StartScreen = () => {
 	const rootStore = useStores();
+	let activeCategoryId: string | undefined;
+
+	const handleCategoryPress = (categoryId: string) => {
+		activeCategoryId = activeCategoryId === categoryId ? undefined : categoryId;
+		rootStore.videosStore.getVideos(activeCategoryId);
+	};
 
 	return (
 		<Observer>
@@ -17,7 +23,13 @@ export const StartScreen = () => {
 				<Box>
 					<ScrollView horizontal={true} showsHorizontalScrollIndicator={false} pagingEnabled={true}>
 						{rootStore.videoCategoriesStore.categories.map(category => (
-							<VideoCategory id={category.id} title={category.title} key={category.id} />
+							<VideoCategory
+								id={category.id}
+								title={category.title}
+								isActive={activeCategoryId === category.id}
+								key={category.id}
+								pressHandler={handleCategoryPress}
+							/>
 						))}
 					</ScrollView>
 
@@ -26,7 +38,7 @@ export const StartScreen = () => {
 						renderItem={VideoPreview}
 						keyExtractor={video => video.id}
 						onEndReached={() => {
-							rootStore.videosStore.getVideos();
+							rootStore.videosStore.getVideos(activeCategoryId);
 						}}
 					/>
 				</Box>
