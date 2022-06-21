@@ -10,7 +10,12 @@ module.exports = {
 	coverageDirectory: './jest/coverage',
 	setupFiles: ['<rootDir>/jest/jest.setup.ts'],
 	transformIgnorePatterns: [
-		'node_modules/(?!(' + '@react-native|' + 'react-native|' + '@react-navigation|' + 'mobx-react-lite)/)',
+		'node_modules/(?!(' +
+			'@react-native|' +
+			'react-native|' +
+			'@react-navigation|' +
+			'react-native-vector-icons|' +
+			'mobx-react-lite)/)',
 	],
 	moduleNameMapper: {
 		'react-dom': 'react-native',
