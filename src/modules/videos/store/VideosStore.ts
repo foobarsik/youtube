@@ -11,9 +11,12 @@ export class VideosStore {
 	private readonly rootStore: RootStore;
 
 	videos: Video[] = [];
-	loadingState: LoadingState = LoadingState.DONE;
+	loadingState: LoadingState = LoadingState.PENDING;
+	isMoreToFetch = true;
 	nextPageToken: string | undefined;
 	categoryId: string | undefined;
+	totalResults = 0;
+	fetchedResults = 0;
 
 	constructor(rootStore: RootStore) {
 		makeAutoObservable(this);
@@ -24,10 +27,13 @@ export class VideosStore {
 	}
 
 	*getVideos(categoryId?: string) {
-		if (this.categoryId !== categoryId) {
-			this.videos = [];
+		if (!this.fetchingMoreFromSameCategory(categoryId)) {
+			this.resetStateData();
 			this.categoryId = categoryId;
+		} else if (!this.isMoreToFetch) {
+			return;
 		}
+		this.setLoadingState(LoadingState.PENDING);
 		const response: ApiResponse<Videos, ServerError> = yield this.rootStore.services.api.fetchVideos(
 			this.categoryId,
 			this.nextPageToken,
@@ -39,7 +45,14 @@ export class VideosStore {
 				thumbnail: item.snippet.thumbnails.high,
 			}));
 			this.videos.push(...videos);
-			this.nextPageToken = response.data.nextPageToken;
+			this.setLoadingState(LoadingState.DONE);
+			if (response.data.nextPageToken) {
+				this.nextPageToken = response.data.nextPageToken;
+			} else {
+				this.isMoreToFetch = false;
+			}
+			this.totalResults = response.data.pageInfo.totalResults;
+			this.fetchedResults += response.data.pageInfo.resultsPerPage;
 		} else {
 			// TODO show special message if daily api quota exited
 			ErrorHandler.handleApiProblem(
@@ -50,7 +63,27 @@ export class VideosStore {
 		}
 	}
 
+	fetchingMoreFromSameCategory(categoryId: string | undefined) {
+		return this.categoryId === categoryId;
+	}
+
+	resetStateData() {
+		this.videos = [];
+		this.nextPageToken = undefined;
+		this.isMoreToFetch = true;
+		this.fetchedResults = 0;
+		this.totalResults = 0;
+	}
+
 	setLoadingState(state: LoadingState) {
 		this.loadingState = state;
+	}
+
+	get isLoading(): boolean {
+		return this.loadingState === LoadingState.PENDING;
+	}
+
+	get isError(): boolean {
+		return [LoadingState.ERROR, LoadingState.NO_CONNECTION].includes(this.loadingState);
 	}
 }

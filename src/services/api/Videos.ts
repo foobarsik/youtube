@@ -57,6 +57,6 @@ export interface Videos {
 	kind: string;
 	etag: string;
 	items: ItemsItem[];
-	nextPageToken: string;
+	nextPageToken?: string;
 	pageInfo: PageInfo;
 }
