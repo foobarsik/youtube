@@ -12,12 +12,14 @@ import {H2} from '../../../theme/Typography';
 
 export const StartScreen = () => {
 	const rootStore = useStores();
+	const videosStore = rootStore.videosStore;
+	const videoCategoriesStore = rootStore.videoCategoriesStore;
 	const {t} = useTranslation('general');
 	let activeCategoryId: string | undefined;
 
 	const handleCategoryPress = (categoryId: string) => {
 		activeCategoryId = activeCategoryId === categoryId ? undefined : categoryId;
-		rootStore.videosStore.getVideos(activeCategoryId);
+		videosStore.getVideos(activeCategoryId);
 	};
 
 	return (
@@ -25,7 +27,7 @@ export const StartScreen = () => {
 			{() => (
 				<Box>
 					<ScrollView horizontal={true} showsHorizontalScrollIndicator={false} pagingEnabled={true}>
-						{rootStore.videoCategoriesStore.categories.map(category => (
+						{videoCategoriesStore.categories.map(category => (
 							<VideoCategory
 								id={category.id}
 								title={category.title}
@@ -36,20 +38,20 @@ export const StartScreen = () => {
 						))}
 					</ScrollView>
 
-					{rootStore.videosStore.isLoading && <ActivityIndicator size="large" color="red" />}
+					{videosStore.isLoading && <ActivityIndicator size="large" color="red" />}
 
 					<InfoMessage>
-						{rootStore.videosStore.fetchedResults} / {rootStore.videosStore.totalResults}
+						{videosStore.fetchedResults} / {videosStore.totalResults}
 					</InfoMessage>
 
-					{rootStore.videosStore.isError && <Error>{t('errorHappened')}</Error>}
+					{videosStore.isError && <Error>{t('errorHappened')}</Error>}
 
 					<FlatList
-						data={mobx.toJS(rootStore.videosStore.videos)}
+						data={mobx.toJS(videosStore.videos)}
 						renderItem={VideoPreview}
 						keyExtractor={video => video.id}
 						onEndReached={() => {
-							rootStore.videosStore.getVideos(activeCategoryId);
+							videosStore.getVideos(activeCategoryId);
 						}}
 					/>
 				</Box>
