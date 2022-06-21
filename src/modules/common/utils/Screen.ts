@@ -1,3 +1,3 @@
 export enum Screen {
-	START = 'start',
+	START = 'Hobotube',
 }
