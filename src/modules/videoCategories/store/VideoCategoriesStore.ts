@@ -16,8 +16,6 @@ export class VideoCategoriesStore {
 		makeAutoObservable(this);
 
 		this.rootStore = rootStore;
-
-		this.getCategories();
 	}
 
 	*getCategories() {

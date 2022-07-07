@@ -13,8 +13,8 @@ export class VideosStore {
 	videos: Video[] = [];
 	loadingState: LoadingState = LoadingState.PENDING;
 	isMoreToFetch = true;
-	nextPageToken: string | undefined;
-	categoryId: string | undefined;
+	nextPageToken?: string;
+	categoryId?: string;
 	totalResults = 0;
 	fetchedResults = 0;
 
@@ -22,8 +22,6 @@ export class VideosStore {
 		makeAutoObservable(this);
 
 		this.rootStore = rootStore;
-
-		this.getVideos();
 	}
 
 	*getVideos(categoryId?: string) {
@@ -63,7 +61,7 @@ export class VideosStore {
 		}
 	}
 
-	fetchingMoreFromSameCategory(categoryId: string | undefined) {
+	fetchingMoreFromSameCategory(categoryId?: string) {
 		return this.categoryId === categoryId;
 	}
 

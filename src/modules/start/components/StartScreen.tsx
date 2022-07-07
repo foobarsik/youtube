@@ -1,5 +1,5 @@
 import styled from '@emotion/native';
-import React from 'react';
+import React, {useEffect} from 'react';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import * as mobx from 'mobx';
 import {useStores} from '../../common/stores/RootStore';
@@ -19,6 +19,11 @@ export const StartScreen = () => {
 		activeCategoryId = activeCategoryId === categoryId ? undefined : categoryId;
 		videosStore.getVideos(activeCategoryId);
 	};
+
+	useEffect(() => {
+		videoCategoriesStore.getCategories();
+		videosStore.getVideos();
+	}, [videoCategoriesStore, videosStore]);
 
 	return (
 		<Observer>
@@ -68,16 +73,16 @@ const Box = styled(SafeAreaView)(({theme}) => ({
 	backgroundColor: theme.color.background,
 }));
 
-const Videos = styled(View)(() => ({
+const Videos = styled(View)({
 	height: '100%',
-}));
+});
 
-const Logo = styled(Image)(() => ({
+const Logo = styled(Image)({
 	height: 30,
 	alignSelf: 'center',
 	marginBottom: 10,
-}));
+});
 
-const InfoMessage = styled(H2)(() => ({
+const InfoMessage = styled(H2)({
 	alignSelf: 'center',
-}));
+});

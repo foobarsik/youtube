@@ -11,8 +11,8 @@ interface ItemsItem {
 	snippet: Snippet;
 }
 
-export type VideoCategories = {
+export interface VideoCategories {
 	kind: string;
 	etag: string;
 	items: ItemsItem[];
-};
+}
