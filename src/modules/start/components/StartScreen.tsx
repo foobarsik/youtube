@@ -6,7 +6,7 @@ import {useStores} from '../../common/stores/RootStore';
 import {Observer} from 'mobx-react-lite';
 import {View, FlatList, ScrollView, Image} from 'react-native';
 import {VideoPreview} from '../../videos/components/VideoPreview';
-import {VideoCategory} from '../../videoCategories/components/VideoCategory';
+import {Chip} from '../../common/components/Chip';
 import {H2} from '../../../theme/Typography';
 import {LoadingStateSwitcher} from '../../common/components/LoadingStateSwitcher';
 
@@ -33,12 +33,12 @@ export const StartScreen = () => {
 						<Logo source={logoImage} resizeMode="contain" />
 						<ScrollView horizontal={true} showsHorizontalScrollIndicator={false} pagingEnabled={true}>
 							{videoCategoriesStore.categories.map(category => (
-								<VideoCategory
+								<Chip
 									id={category.id}
 									title={category.title}
 									isActive={activeCategoryId === category.id}
 									key={category.id}
-									pressHandler={handleCategoryPress}
+									onPress={handleCategoryPress}
 								/>
 							))}
 						</ScrollView>
