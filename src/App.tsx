@@ -9,6 +9,7 @@ import {Screen} from './modules/common/utils/Screen';
 import {StartScreen} from './modules/start/components/StartScreen';
 import {ErrorTrackingService} from './services/errorTracking/ErrorTrackingService';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import {useTranslation} from 'react-i18next';
 
 MaterialCommunityIcons.loadFont();
 
@@ -19,6 +20,7 @@ type Props = {
 };
 
 export const App = observer(({errorTrackingService}: Props) => {
+	const {t} = useTranslation('start');
 	const rootStore = useStores();
 	const NavigationContainer = rootStore.services.errorTracking.getNavigationContainer();
 	return (
@@ -33,7 +35,8 @@ export const App = observer(({errorTrackingService}: Props) => {
 								name={Screen.START}
 								component={StartScreen}
 								options={{
-									tabBarLabel: 'Home',
+									headerShown: false,
+									tabBarLabel: t('home'),
 									tabBarIcon: ({color, size}) => <MaterialCommunityIcons name="home" color={color} size={size} />,
 								}}
 							/>
