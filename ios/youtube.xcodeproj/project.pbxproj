@@ -540,7 +540,7 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = startup.house.youtube.alpha;
+				PRODUCT_BUNDLE_IDENTIFIER = startup.house.youtube;
 				PRODUCT_NAME = youtube;
 				PROVISIONING_PROFILE_SPECIFIER = "match Development startup.house.youtube";
 				SWIFT_OBJC_BRIDGING_HEADER = "youtube/Modules/youtube-Bridging-Header.h";
@@ -573,7 +573,7 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = startup.house.youtube.alpha;
+				PRODUCT_BUNDLE_IDENTIFIER = startup.house.youtube;
 				PRODUCT_NAME = youtube;
 				PROVISIONING_PROFILE = "00d323c7-fe31-4e0c-b3fa-7bca2a15442d";
 				PROVISIONING_PROFILE_SPECIFIER = "match AppStore startup.house.youtube";
