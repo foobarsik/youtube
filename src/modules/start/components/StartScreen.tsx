@@ -31,7 +31,7 @@ export const StartScreen = () => {
 				<Box>
 					<View>
 						<Logo source={logoImage} resizeMode="contain" />
-						<ScrollView horizontal={true} showsHorizontalScrollIndicator={false} pagingEnabled={true}>
+						<ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
 							{videoCategoriesStore.categories.map(category => (
 								<Chip
 									id={category.id}
