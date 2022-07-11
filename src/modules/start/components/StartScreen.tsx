@@ -46,16 +46,16 @@ export const StartScreen = () => {
 
 					<Videos>
 						<LoadingStateSwitcher
-							loadingState={videosStore.loadingState}
+							loadingState={videosStore.response.loadingState}
 							tryAgainCallback={() => videosStore.getVideos(activeCategoryId)}
 						/>
 
 						<InfoMessage>
-							{videosStore.fetchedResults} / {videosStore.totalResults}
+							{videosStore.response.fetchedResults} / {videosStore.response.totalResults}
 						</InfoMessage>
 
 						<FlatList
-							data={mobx.toJS(videosStore.videos)}
+							data={mobx.toJS(videosStore.response.videos)}
 							renderItem={VideoPreview}
 							keyExtractor={video => video.id}
 							onEndReached={() => {
