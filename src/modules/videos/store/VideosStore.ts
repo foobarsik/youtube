@@ -26,7 +26,7 @@ export class VideosStore {
 		} else if (!this.response.isMoreToFetch) {
 			return;
 		}
-		this.response.loadingState = LoadingState.DONE;
+		this.response.loadingState = LoadingState.PENDING;
 		const response: ApiResponse<Videos, ServerError> = yield this.rootStore.services.api.fetchVideos(
 			this.categoryId,
 			this.response.nextPageToken,
