@@ -1,24 +1,88 @@
 import styled from '@emotion/native';
-import React from 'react';
-import {useTranslation} from 'react-i18next';
+import React, {useEffect} from 'react';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {H1} from '../../../theme/Typography';
-import {VersionLabel} from '../../common/components/VersionLabel';
+import * as mobx from 'mobx';
+import {useStores} from '../../common/stores/RootStore';
+import {Observer} from 'mobx-react-lite';
+import {View, FlatList, ScrollView, Image} from 'react-native';
+import {VideoPreview} from '../../videos/components/VideoPreview';
+import {Chip} from '../../common/components/Chip';
+import {H2} from '../../../theme/Typography';
+import {LoadingStateSwitcher} from '../../common/components/LoadingStateSwitcher';
 
 export const StartScreen = () => {
-	const {t} = useTranslation('start');
+	const {videosStore, videoCategoriesStore} = useStores();
+	const logoImage = require('../../../assets/logo.png');
+	let activeCategoryId: string | undefined;
+
+	const handleCategoryPress = (categoryId: string) => {
+		activeCategoryId = activeCategoryId === categoryId ? undefined : categoryId;
+		videosStore.getVideos(activeCategoryId);
+	};
+
+	useEffect(() => {
+		videoCategoriesStore.getCategories();
+		videosStore.getVideos();
+	}, [videoCategoriesStore, videosStore]);
 
 	return (
-		<Box>
-			<H1>{t('title')}</H1>
-			<VersionLabel />
-		</Box>
+		<Observer>
+			{() => (
+				<Box>
+					<View>
+						<Logo source={logoImage} resizeMode="contain" />
+						<ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
+							{videoCategoriesStore.categories.map(category => (
+								<Chip
+									id={category.id}
+									title={category.title}
+									isActive={activeCategoryId === category.id}
+									key={category.id}
+									onPress={handleCategoryPress}
+								/>
+							))}
+						</ScrollView>
+					</View>
+
+					<Videos>
+						<LoadingStateSwitcher
+							loadingState={videosStore.response.loadingState}
+							tryAgainCallback={() => videosStore.getVideos(activeCategoryId)}
+						/>
+
+						<InfoMessage>
+							{videosStore.response.fetchedResults} / {videosStore.response.totalResults}
+						</InfoMessage>
+
+						<FlatList
+							data={mobx.toJS(videosStore.response.videos)}
+							renderItem={VideoPreview}
+							keyExtractor={video => video.id}
+							onEndReached={() => {
+								videosStore.getVideos(activeCategoryId);
+							}}
+						/>
+					</Videos>
+				</Box>
+			)}
+		</Observer>
 	);
 };
 
 const Box = styled(SafeAreaView)(({theme}) => ({
-	alignItems: 'center',
-	justifyContent: 'center',
-	flex: 1,
 	backgroundColor: theme.color.background,
 }));
+
+const Videos = styled(View)({
+	height: '100%',
+});
+
+const Logo = styled(Image)({
+	height: 30,
+	alignSelf: 'center',
+	marginBottom: 10,
+});
+
+const InfoMessage = styled(H2)({
+	alignSelf: 'center',
+});

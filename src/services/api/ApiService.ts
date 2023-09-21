@@ -1,7 +1,9 @@
 import {ApiResponse} from 'apisauce';
-import {SampleResponse} from './SampleResponse';
+import {VideoCategories} from './VideoCategories';
+import {Videos} from './Videos';
 import {ServerError} from './ServerError';
 
 export interface ApiService {
-	sampleRequest(name: string): Promise<ApiResponse<SampleResponse, ServerError>>;
+	fetchVideoCategories(langCode: string, regionCode: string): Promise<ApiResponse<VideoCategories, ServerError>>;
+	fetchVideos(categoryId?: string, nextPageToken?: string): Promise<ApiResponse<Videos, ServerError>>;
 }

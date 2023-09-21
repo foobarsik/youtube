@@ -1,4 +1,6 @@
 export type ServerError = {
-	message: string;
-	errorCode: string;
+	error: {
+		message: string;
+		errorCode: string;
+	};
 };

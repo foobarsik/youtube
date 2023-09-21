@@ -35,7 +35,7 @@ export class ErrorHandler {
 				unexpectedErrorBehavior();
 				break;
 			case CLIENT_ERROR:
-				if (response.data?.message) {
+				if (response.data?.error?.message) {
 					//TODO: tell user what happend
 					loadingStateCallback(LoadingState.DONE);
 				} else {
